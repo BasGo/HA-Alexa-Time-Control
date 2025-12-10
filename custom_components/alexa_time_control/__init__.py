@@ -7,7 +7,7 @@ from datetime import datetime, time
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED, Platform
 from homeassistant.core import Event, HomeAssistant, callback
-from homeassistant.helpers import discovery_flow, entity_registry as er
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.event import async_track_state_change_event
 
 _LOGGER = logging.getLogger(__name__)
@@ -16,60 +16,62 @@ DOMAIN = "alexa_time_control"
 PLATFORMS: list[Platform] = [Platform.TIME, Platform.SWITCH, Platform.TEXT]
 
 
-async def async_setup(hass: HomeAssistant, config: dict) -> bool:
-    """Set up the Alexa Time Control component."""
-    
-    async def async_discover_alexa_devices(event: Event) -> None:
-        """Discover Alexa media players and create discovery flows."""
-        # Get all media player entities
-        states = hass.states.async_all("media_player")
-        
-        # Get already configured entities
-        current_entries = hass.config_entries.async_entries(DOMAIN)
-        configured_entities = {entry.unique_id for entry in current_entries}
-        
-        # Find Alexa media players
-        for state in states:
-            # Check if it's an Alexa device
-            if "alexa" in state.entity_id.lower() or state.attributes.get("integration") == "alexa_media":
-                # Skip if already configured
-                if state.entity_id not in configured_entities:
-                    discovery_flow.async_create_flow(
-                        hass,
-                        DOMAIN,
-                        context={"source": "discovery"},
-                        data={"alexa_entity_id": state.entity_id},
-                    )
-    
-    # Schedule discovery after Home Assistant has started
-    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, async_discover_alexa_devices)
-    
-    return True
-
-
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Alexa Time Control from a config entry."""
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = {
-        "alexa_entity_id": entry.data["alexa_entity_id"],
+        "alexa_devices": {},
         "listeners": []
     }
+
+    # Discover and set up Alexa devices
+    await _async_discover_and_setup_devices(hass, entry)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     # Set up state listener after entities are created
     async def async_setup_listener(event):
         """Set up the state listener after entities are ready."""
-        await _async_setup_state_listener(hass, entry)
+        for alexa_entity_id in hass.data[DOMAIN][entry.entry_id]["alexa_devices"]:
+            await _async_setup_state_listener(hass, entry, alexa_entity_id)
 
     hass.bus.async_listen_once("homeassistant_started", async_setup_listener)
 
     return True
 
 
-async def _async_setup_state_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def _async_discover_and_setup_devices(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Discover Alexa media players and create devices for them."""
+    # Get all media player entities
+    states = hass.states.async_all("media_player")
+    
+    device_registry = dr.async_get(hass)
+    
+    # Find Alexa media players
+    for state in states:
+        # Check if it's an Alexa device
+        if "alexa" in state.entity_id.lower() or state.attributes.get("integration") == "alexa_media":
+            alexa_entity_id = state.entity_id
+            device_name = state.attributes.get("friendly_name", alexa_entity_id.split(".")[-1])
+            
+            # Create a device for this Alexa media player
+            device = device_registry.async_get_or_create(
+                config_entry_id=entry.entry_id,
+                identifiers={(DOMAIN, alexa_entity_id)},
+                name=device_name,
+                manufacturer="Amazon",
+                model="Alexa Device with Time Control",
+            )
+            
+            # Store the device info
+            hass.data[DOMAIN][entry.entry_id]["alexa_devices"][alexa_entity_id] = {
+                "device_id": device.id,
+                "name": device_name,
+            }
+
+
+async def _async_setup_state_listener(hass: HomeAssistant, entry: ConfigEntry, alexa_entity_id: str) -> None:
     """Set up the state change listener for the Alexa device."""
-    alexa_entity_id = entry.data["alexa_entity_id"]
     entry_id = entry.entry_id
 
     @callback

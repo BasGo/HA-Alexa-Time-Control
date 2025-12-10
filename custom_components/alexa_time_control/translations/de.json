@@ -2,19 +2,12 @@
   "config": {
     "step": {
       "user": {
-        "title": "Alexa Zeitsteuerung hinzufügen",
-        "description": "Wählen Sie einen Alexa Media Player aus, um zeitbasierte Zugriffskontrolle hinzuzufügen.",
-        "data": {
-          "alexa_entity_id": "Alexa Media Player"
-        }
-      },
-      "discovery_confirm": {
-        "title": "Alexa-Gerät gefunden",
-        "description": "Möchten Sie Zeitsteuerung zu {name} hinzufügen?"
+        "title": "Alexa Time Control einrichten",
+        "description": "Diese Integration erkennt automatisch alle Alexa Media Player und fügt ihnen Zeitsteuerung hinzu."
       }
     },
     "abort": {
-      "already_configured": "Für dieses Alexa-Gerät ist bereits eine Zeitsteuerung konfiguriert."
+      "single_instance_allowed": "Es ist nur eine Instanz von Alexa Time Control erlaubt."
     }
   },
   "entity": {

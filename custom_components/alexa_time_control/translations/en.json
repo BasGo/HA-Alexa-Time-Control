@@ -2,19 +2,12 @@
   "config": {
     "step": {
       "user": {
-        "title": "Add Alexa Time Control",
-        "description": "Select an Alexa media player to add time-based access control.",
-        "data": {
-          "alexa_entity_id": "Alexa Media Player"
-        }
-      },
-      "discovery_confirm": {
-        "title": "Discovered Alexa Device",
-        "description": "Do you want to add time control to {name}?"
+        "title": "Set up Alexa Time Control",
+        "description": "This integration will automatically discover all Alexa media players and add time control to them."
       }
     },
     "abort": {
-      "already_configured": "This Alexa device already has time control configured."
+      "single_instance_allowed": "Only a single instance of Alexa Time Control is allowed."
     }
   },
   "entity": {
