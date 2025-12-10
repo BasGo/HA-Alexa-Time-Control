@@ -1,0 +1,40 @@
+name: Create Release ZIP
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get version from manifest
+        id: get_version
+        run: |
+          VERSION=$(jq -r '.version' custom_components/alexa_time_control/manifest.json)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Integration version: $VERSION"
+
+      - name: Create ZIP file
+        run: |
+          cd custom_components
+          zip -r ../alexa_time_control.zip alexa_time_control/
+          cd ..
+
+      - name: Upload ZIP as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: alexa_time_control-${{ steps.get_version.outputs.version }}
+          path: alexa_time_control.zip
+
+      - name: Upload ZIP to release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: alexa_time_control.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
