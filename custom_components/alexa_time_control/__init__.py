@@ -21,38 +21,47 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = {
         "alexa_devices": {},
-        "listeners": []
+        "listeners": [],
+        "platforms_loaded": False,
     }
 
-    # Discover and set up Alexa devices
-    await _async_discover_and_setup_devices(hass, entry)
-
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-
-    # Set up state listener after entities are created
-    async def async_setup_listener(event):
-        """Set up the state listener after entities are ready."""
+    # Wait for Home Assistant to start, then discover devices and set up platforms
+    async def async_on_started(event: Event) -> None:
+        """Handle Home Assistant started event."""
+        # Discover Alexa devices
+        await _async_discover_and_setup_devices(hass, entry)
+        
+        # Set up platforms with discovered devices
+        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+        hass.data[DOMAIN][entry.entry_id]["platforms_loaded"] = True
+        
+        # Set up state listeners
         for alexa_entity_id in hass.data[DOMAIN][entry.entry_id]["alexa_devices"]:
             await _async_setup_state_listener(hass, entry, alexa_entity_id)
 
-    hass.bus.async_listen_once("homeassistant_started", async_setup_listener)
+    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, async_on_started)
 
     return True
 
 
 async def _async_discover_and_setup_devices(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Discover Alexa media players and create devices for them."""
+    _LOGGER.debug("Starting Alexa device discovery")
+    
     # Get all media player entities
     states = hass.states.async_all("media_player")
     
     device_registry = dr.async_get(hass)
     
+    discovered_count = 0
     # Find Alexa media players
     for state in states:
         # Check if it's an Alexa device
         if "alexa" in state.entity_id.lower() or state.attributes.get("integration") == "alexa_media":
             alexa_entity_id = state.entity_id
             device_name = state.attributes.get("friendly_name", alexa_entity_id.split(".")[-1])
+            
+            _LOGGER.debug("Discovered Alexa device: %s (%s)", device_name, alexa_entity_id)
             
             # Create a device for this Alexa media player
             device = device_registry.async_get_or_create(
@@ -68,6 +77,9 @@ async def _async_discover_and_setup_devices(hass: HomeAssistant, entry: ConfigEn
                 "device_id": device.id,
                 "name": device_name,
             }
+            discovered_count += 1
+    
+    _LOGGER.info("Discovered %d Alexa device(s) for time control", discovered_count)
 
 
 async def _async_setup_state_listener(hass: HomeAssistant, entry: ConfigEntry, alexa_entity_id: str) -> None:
