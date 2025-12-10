@@ -1,0 +1,81 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Alexa Zeitsteuerung hinzufügen",
+        "description": "Wählen Sie einen Alexa Media Player aus, um zeitbasierte Zugriffskontrolle hinzuzufügen.",
+        "data": {
+          "alexa_entity_id": "Alexa Media Player"
+        }
+      },
+      "discovery_confirm": {
+        "title": "Alexa-Gerät gefunden",
+        "description": "Möchten Sie Zeitsteuerung zu {name} hinzufügen?"
+      }
+    },
+    "abort": {
+      "already_configured": "Für dieses Alexa-Gerät ist bereits eine Zeitsteuerung konfiguriert."
+    }
+  },
+  "entity": {
+    "time": {
+      "start_time": {
+        "name": "Startzeit"
+      },
+      "end_time": {
+        "name": "Endzeit"
+      }
+    },
+    "switch": {
+      "enabled": {
+        "name": "Aktiviert"
+      },
+      "blocked": {
+        "name": "Blockiert"
+      }
+    },
+    "text": {
+      "name": {
+        "name": "Name"
+      }
+    }
+  },
+  "entity_component": {
+    "_": {
+      "name": "[%key:component::alexa_time_control::entity::time::start_time::name%]",
+      "state": {
+        "start_time": "[%key:component::alexa_time_control::entity::time::start_time::name%]",
+        "end_time": "[%key:component::alexa_time_control::entity::time::end_time::name%]",
+        "enabled": "[%key:component::alexa_time_control::entity::switch::enabled::name%]",
+        "blocked": "[%key:component::alexa_time_control::entity::switch::blocked::name%]",
+        "name": "[%key:component::alexa_time_control::entity::text::name::name%]"
+      }
+    },
+    "time": {
+      "start_time": {
+        "default_name": "Startzeit",
+        "icon": "mdi:clock-start"
+      },
+      "end_time": {
+        "default_name": "Endzeit",
+        "icon": "mdi:clock-end"
+      }
+    },
+    "switch": {
+      "enabled": {
+        "default_name": "Aktiviert",
+        "icon": "mdi:shield-check"
+      },
+      "blocked": {
+        "default_name": "Blockiert",
+        "icon": "mdi:block-helper"
+      }
+    },
+    "text": {
+      "name": {
+        "default_name": "Name",
+        "icon": "mdi:account"
+      }
+    }
+  }
+}

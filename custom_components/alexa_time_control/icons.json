@@ -1,0 +1,7 @@
+{
+  "component": {
+    "alexa_time_control": {
+      "default": "mdi:clock-check"
+    }
+  }
+}
