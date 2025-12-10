@@ -7,7 +7,7 @@ from datetime import datetime, time
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED, Platform
 from homeassistant.core import Event, HomeAssistant, callback
-from homeassistant.helpers import discovery_flow, entity_registry as er
+from homeassistant.helpers import device_registry as dr, discovery_flow, entity_registry as er
 from homeassistant.helpers.event import async_track_state_change_event
 
 _LOGGER = logging.getLogger(__name__)
@@ -50,9 +50,28 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Alexa Time Control from a config entry."""
     hass.data.setdefault(DOMAIN, {})
+    
+    alexa_entity_id = entry.data["alexa_entity_id"]
+    
+    # Get information about the Alexa device
+    state = hass.states.get(alexa_entity_id)
+    device_name = state.attributes.get("friendly_name", alexa_entity_id.split(".")[-1]) if state else alexa_entity_id.split(".")[-1]
+    
+    # Create a device for this integration
+    device_registry = dr.async_get(hass)
+    device = device_registry.async_get_or_create(
+        config_entry_id=entry.entry_id,
+        identifiers={(DOMAIN, alexa_entity_id)},
+        name=f"Time Control - {device_name}",
+        manufacturer="Alexa Time Control",
+        model="Time Control",
+        suggested_area=state.attributes.get("area") if state else None,
+    )
+    
     hass.data[DOMAIN][entry.entry_id] = {
-        "alexa_entity_id": entry.data["alexa_entity_id"],
-        "listeners": []
+        "alexa_entity_id": alexa_entity_id,
+        "listeners": [],
+        "device_id": device.id,
     }
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)

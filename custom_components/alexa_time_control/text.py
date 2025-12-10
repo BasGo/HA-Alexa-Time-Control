@@ -6,7 +6,6 @@ import logging
 from homeassistant.components.text import TextEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -23,18 +22,10 @@ async def async_setup_entry(
     """Set up the text entities."""
     alexa_entity_id = entry.data["alexa_entity_id"]
     
-    # Get the device info from the existing Alexa entity
-    entity_reg = er.async_get(hass)
-    alexa_entity = entity_reg.async_get(alexa_entity_id)
-    
-    device_info = None
-    if alexa_entity and alexa_entity.device_id:
-        device_reg = dr.async_get(hass)
-        device = device_reg.async_get(alexa_entity.device_id)
-        if device:
-            device_info = DeviceInfo(
-                identifiers=device.identifiers,
-            )
+    # Use the device created in __init__.py
+    device_info = DeviceInfo(
+        identifiers={(DOMAIN, alexa_entity_id)},
+    )
 
     entities = [
         AlexaTimeControlText(
