@@ -7,6 +7,7 @@ from datetime import time
 from homeassistant.components.time import TimeEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -21,31 +22,37 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the time entities."""
-    alexa_devices = hass.data[DOMAIN][entry.entry_id]["alexa_devices"]
+    alexa_entity_id = entry.data["alexa_entity_id"]
     
-    entities = []
-    for alexa_entity_id in alexa_devices:
-        # Create device info for this Alexa device
-        device_info = DeviceInfo(
-            identifiers={(DOMAIN, alexa_entity_id)},
-        )
-        
-        entities.extend([
-            AlexaTimeControlTime(
-                entry.entry_id,
-                alexa_entity_id,
-                device_info,
-                "start_time",
-                time(8, 0),
-            ),
-            AlexaTimeControlTime(
-                entry.entry_id,
-                alexa_entity_id,
-                device_info,
-                "end_time",
-                time(20, 0),
-            ),
-        ])
+    # Get the device info from the existing Alexa entity
+    entity_reg = er.async_get(hass)
+    alexa_entity = entity_reg.async_get(alexa_entity_id)
+    
+    device_info = None
+    if alexa_entity and alexa_entity.device_id:
+        device_reg = dr.async_get(hass)
+        device = device_reg.async_get(alexa_entity.device_id)
+        if device:
+            device_info = DeviceInfo(
+                identifiers=device.identifiers,
+            )
+
+    entities = [
+        AlexaTimeControlTime(
+            entry.entry_id,
+            alexa_entity_id,
+            device_info,
+            "start_time",
+            time(8, 0),
+        ),
+        AlexaTimeControlTime(
+            entry.entry_id,
+            alexa_entity_id,
+            device_info,
+            "end_time",
+            time(20, 0),
+        ),
+    ]
 
     async_add_entities(entities)
 
@@ -70,6 +77,12 @@ class AlexaTimeControlTime(TimeEntity):
         self._attr_translation_key = translation_key
         self._attr_native_value = default_time
         self._attr_device_info = device_info
+        
+        # Set icon based on translation key
+        if translation_key == "start_time":
+            self._attr_icon = "mdi:clock-start"
+        elif translation_key == "end_time":
+            self._attr_icon = "mdi:clock-end"
 
     async def async_set_value(self, value: time) -> None:
         """Update the current value."""

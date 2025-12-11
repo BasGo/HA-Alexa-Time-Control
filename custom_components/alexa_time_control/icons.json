@@ -3,5 +3,15 @@
     "alexa_time_control": {
       "default": "mdi:clock-check"
     }
+  },
+  "entity": {
+    "time": {
+      "start_time": {
+        "default": "mdi:clock-start"
+      },
+      "end_time": {
+        "default": "mdi:clock-end"
+      }
+    }
   }
 }
